@@ -1,0 +1,9 @@
+[submodule "build/ThirdParty/glm"]
+	path = build/ThirdParty/glm
+	url = https://github.com/g-truc/glm
+[submodule "build/ThirdParty/GLFW"]
+	path = build/ThirdParty/GLFW
+	url = https://github.com/Ciridev/glfw
+[submodule "build/ThirdParty/ImGui"]
+	path = build/ThirdParty/ImGui
+	url = https://github.com/Ciridev/imgui
