@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "mfxpch.h"
+#include "defpch.h"
 
 enum class EventType
 {

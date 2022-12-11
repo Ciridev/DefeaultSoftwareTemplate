@@ -24,11 +24,8 @@
 
 #include <FrameBuffer.h>
 #include <glm/glm.hpp>
-#include <include/imgui_node_editor.h>
 
 #include "Events/Event.h"
-
-namespace NodeEditor = ax::NodeEditor;
 
 class UIPanel
 {
@@ -92,16 +89,14 @@ public:
 	virtual void OnEvent(Event& e) {}
 };
 
-class NodeEditorPanel : public UIPanel
+class AboutPanel : public UIPanel
 {
 public:
-	NodeEditorPanel(const std::string& name);
-	~NodeEditorPanel();
+	AboutPanel(const std::string& name) : UIPanel(name, false)
+	{
+		m_WindowFlags |= ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking;
+	}
 
 	virtual void DrawUI() override;
 	virtual void OnEvent(Event& e) {}
-
-private:
-
-	bool m_IsScrolling = false;
 };

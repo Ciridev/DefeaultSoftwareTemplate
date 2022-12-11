@@ -49,7 +49,7 @@ public:
 	Window
 	(
 		WindowSettings settings,
-		std::string title = "ManimFX"
+		std::string title = "Default Template Application"
 	) 
 	{
 		m_Data.m_Settings = settings;

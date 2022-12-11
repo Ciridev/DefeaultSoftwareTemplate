@@ -48,11 +48,11 @@ Application::Application()
 
 	auto viewport = new ViewportPanel("Viewport");
 	auto menuBar  = new MenuBarPanel("Menu Bar");
-	auto nodeEditor = new NodeEditorPanel("Node Editor");
+	auto about = new AboutPanel("About");
 
 	m_PanelsContainer[menuBar->GetName()] = menuBar;
 	m_PanelsContainer[viewport->GetName()] = viewport;
-	m_PanelsContainer[nodeEditor->GetName()] = nodeEditor;
+	m_PanelsContainer[about->GetName()] = about;
 }
 
 void Application::RenderLoop()
