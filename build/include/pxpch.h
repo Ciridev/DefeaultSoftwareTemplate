@@ -1,6 +1,7 @@
 #pragma once
 
 /* C++ STL */
+#include <map>
 #include <cmath>
 #include <array>
 #include <vector>

@@ -1,7 +1,7 @@
-workspace "Default"
+workspace "PhysX"
   architecture "x64"
   configurations { "Debug", "Release", "Distribution" }
-  startproject "Default"
+  startproject "PhysX"
 
   outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
     
@@ -17,7 +17,7 @@ workspace "Default"
   include "build/ThirdParty/GLFW"
   include "build/ThirdParty/ImGui"
   
-  project "Default"
+  project "PhysX"
     location "build"
     language "C++"
     cppdialect "C++17"
@@ -44,27 +44,27 @@ workspace "Default"
 
     links { "Glad", "GLFW", "ImGui", "opengl32.lib" }
 
-    pchheader "defpch.h"
-    pchsource "build/src/defpch.cpp"
+    pchheader "pxpch.h"
+    pchsource "build/src/pxpch.cpp"
 
     filter "system:windows" 
       staticruntime "On"
       systemversion "latest"
       system "windows"
 
-      defines { "DEF_WIN" }
+      defines { "PHYSX_WIN" }
 
     filter { "configurations:Debug" }
-      defines { "DEF_DEBUG", "DEBUG" }
+      defines { "PHYSX_DEBUG", "DEBUG" }
       symbols "On"
       kind "ConsoleApp"
 
     filter { "configurations:Release" }
-      defines { "DEF_RELEASE", "NDEBUG" }
+      defines { "PHYSX_RELEASE", "NDEBUG" }
       optimize "On"
       kind "ConsoleApp"
 
       filter { "configurations:Distribution" }
-      defines { "DEF_DISTRIBUTION", "NDEBUG" }
+      defines { "PHYSX_DISTRIBUTION", "NDEBUG" }
       optimize "On"
       kind "WindowedApp"

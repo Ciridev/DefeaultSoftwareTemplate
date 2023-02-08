@@ -27,6 +27,8 @@
 #include "Events/MouseEvents.h"
 #include "Events/WindowEvents.h"
 
+#include "Entity/EntityManager.h"
+
 #include "Window.h"
 
 #include "ImGuiPanel.h"
@@ -38,7 +40,7 @@ T* GetPanel(const std::string& name);
 class Application
 {
 public:
-	Application();
+	Application(Entity& defaultEntity = Entity());
 	~Application() = default;
 
 	void RenderLoop();
@@ -46,7 +48,7 @@ public:
 	static Application& Get();
 
 	std::shared_ptr<Window> GetWindow() const { return m_Window; }
-	std::unordered_map<std::string, UIPanel*> GetPanels() const { return m_PanelsContainer; }
+	std::unordered_map<std::string, Panel*> GetPanels() const { return m_PanelsContainer; }
 
 	//void NewFile();
 	//void OpenFile(const std::string& filepath);
@@ -54,22 +56,30 @@ public:
 	//void CloseFile();
 	//void RestoreFile();
 
-	void ChangeEditorTheme(int theme);
+	void SelectEntity(Entity& entity);
+	const Entity& GetSelectedEntity() const { return m_SelectedEntity; }
+	Entity& GetSelectedEntity() { return m_SelectedEntity; }
 
+	void ChangeEditorTheme(int theme);
 	void Close();
 
 private: 
 	void OnEvent(Event&);
+	bool OnKeyboardHit(KeyPressed&);
 	bool OnWindowClosed(WindowClosed&);
 	bool OnFilesDropped(FilesDropped&);
 	bool OnWindowResized(WindowResized&);
 
 	std::shared_ptr<Window> m_Window;
+	std::shared_ptr<EntityManager> m_EntityManager;
+	std::shared_ptr<Renderer> m_Renderer;
 	std::unique_ptr<ImGuiPanel> m_ImGuiFrame;
+
+	Entity& m_SelectedEntity;
 
 	static Application* s_Instance;
 
-	std::unordered_map<std::string, UIPanel*> m_PanelsContainer;
+	std::unordered_map<std::string, Panel*> m_PanelsContainer;
 
 	bool m_Minimized;
 	bool m_Running;

@@ -27,7 +27,7 @@
 
 #include "Events/Event.h"
 
-class UIPanel
+class Panel
 {
 public:
 	virtual void DrawUI() = 0;
@@ -39,7 +39,7 @@ public:
 	void Activate(bool state) { m_Active = state; }
 
 protected:
-	UIPanel(const std::string& name, bool active = true) : m_Name(name), m_Active(active) 
+	Panel(const std::string& name, bool active = true) : m_Name(name), m_Active(active) 
 	{ m_WindowFlags = ImGuiWindowFlags_NoCollapse; }
 
 	std::string m_Name;
@@ -48,10 +48,32 @@ protected:
 	ImGuiWindowFlags m_WindowFlags;
 };
 
-class MenuBarPanel : public UIPanel
+class ListenerPanel : public Panel
+{
+public: 
+	virtual void DrawUI() override {}
+	virtual void OnEvent(Event& e) = 0;
+
+protected:
+	ListenerPanel(const std::string& name) : Panel(name, false) {}
+};
+
+class EntityMangerListener : public ListenerPanel
 {
 public:
-	MenuBarPanel(const std::string& name) : UIPanel(name)
+	EntityMangerListener(const std::string& name);
+	virtual void OnEvent(Event& e) override;
+
+private:
+	bool OnKeyboardHit(KeyPressed& e);
+
+	std::shared_ptr<EntityManager> m_EntityManager;
+};
+
+class MenuBarPanel : public Panel
+{
+public:
+	MenuBarPanel(const std::string& name) : Panel(name)
 	{
 		m_WindowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
 		m_WindowFlags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
@@ -62,10 +84,10 @@ public:
 	virtual void OnEvent(Event& e);
 };
 
-class ViewportPanel : public UIPanel
+class ViewportPanel : public Panel
 {
 public:
-	ViewportPanel(const std::string& name) : UIPanel(name) {}
+	ViewportPanel(const std::string& name) : Panel(name) {}
 
 	virtual void DrawUI() override;
 	virtual void OnEvent(Event& e) {}
@@ -80,23 +102,50 @@ private:
 	std::shared_ptr<FrameBuffer> m_FrameBuffer;
 };
 
-class DemoPanel : public UIPanel
+class DemoPanel : public Panel
 {
 public:
-	DemoPanel(const std::string& name) : UIPanel(name) { }
+	DemoPanel(const std::string& name) : Panel(name) { }
 	
 	virtual void DrawUI() override { ImGui::ShowDemoWindow(); }
 	virtual void OnEvent(Event& e) {}
 };
 
-class AboutPanel : public UIPanel
+class AboutPanel : public Panel
 {
 public:
-	AboutPanel(const std::string& name) : UIPanel(name, false)
+	AboutPanel(const std::string& name) : Panel(name, false)
 	{
 		m_WindowFlags |= ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking;
 	}
 
 	virtual void DrawUI() override;
 	virtual void OnEvent(Event& e) {}
+};
+
+class EntityInspectorPanel : public Panel
+{
+public:
+	EntityInspectorPanel(const std::string& name);
+
+	virtual void DrawUI() override;
+	virtual void OnEvent(Event& e) override;
+
+private:
+	unsigned int m_SelectedEntity;
+	bool b_SetNameMode;
+	friend class WorldViewPanel;
+	friend class EntityMangerListener;
+};
+
+class WorldViewPanel : public Panel
+{
+public:
+	WorldViewPanel(const std::string& name);
+
+	virtual void DrawUI() override;
+	virtual void OnEvent(Event& e) {}
+
+private:
+	std::shared_ptr<EntityManager> m_EntityManagerRef;
 };

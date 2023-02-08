@@ -20,10 +20,10 @@
 // | OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // | SOFTWARE.
 
-#include "defpch.h"
+#include "pxpch.h"
 
-#ifndef DEF_WIN
-	#error Currently Default has only an implementation for Windows.
+#ifndef PHYSX_WIN
+	#error Currently PhysX has only an implementation for Windows.
 #else
 
 #include "Application.h"
@@ -36,7 +36,7 @@ int main()
 	return 0;
 }
 
-#ifdef DEF_DISTRIBUTION
+#ifdef PHYSX_DISTRIBUTION
 int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR pCmdLine, _In_ int nCmdShow)
 {
 	return main();

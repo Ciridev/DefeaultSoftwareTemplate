@@ -20,11 +20,14 @@
 // | OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // | SOFTWARE.
 
-#include "defpch.h"
+#include "pxpch.h"
 
 #include "Application.h"
 #include "FrameBuffer.h"
+#include "Renderer.h"
+
 #include "Utils/TimeStep.h"
+#include "Utils/Keycode.h"
 
 template<typename T>
 T* GetPanel(const std::string& name)
@@ -35,31 +38,47 @@ T* GetPanel(const std::string& name)
 
 Application* Application::s_Instance = nullptr;
 
-Application::Application()
+Application::Application(Entity& defaultEntity) : m_SelectedEntity(defaultEntity)
 {
 	s_Instance = this;
 	WindowSettings windowSettings;
 
+	std::srand(std::time(NULL));
+
 	m_Window = std::make_shared<Window>(windowSettings);
 	m_Window->SetEventCallbackProcedure(BIND_FUNCTION(&Application::OnEvent, this));
+
 	m_ImGuiFrame = std::make_unique<ImGuiPanel>();
+	m_Renderer = Renderer::GetRenderer();
+	m_EntityManager = EntityManager::Get();
+
 	m_Minimized = (m_Window->GetWidth() == 0 && m_Window->GetHeight() == 0);
 	m_Running = m_Window->IsActive();
 
 	auto viewport = new ViewportPanel("Viewport");
 	auto menuBar  = new MenuBarPanel("Menu Bar");
 	auto about = new AboutPanel("About");
+	auto inspector = new EntityInspectorPanel("Inspector");
+	auto worldView = new WorldViewPanel("World View");
+	auto entityListener = new EntityMangerListener("Entity Manager Listener");
+	//auto demo = new DemoPanel("Demo");
 
 	m_PanelsContainer[menuBar->GetName()] = menuBar;
 	m_PanelsContainer[viewport->GetName()] = viewport;
 	m_PanelsContainer[about->GetName()] = about;
+	m_PanelsContainer[inspector->GetName()] = inspector;
+	m_PanelsContainer[worldView->GetName()] = worldView;
+	m_PanelsContainer[entityListener->GetName()] = entityListener;
+	//m_PanelsContainer[demo->GetName()] = demo;
 }
 
 void Application::RenderLoop()
 {
 	TimeStep ts;
 	auto viewport = GetPanel<ViewportPanel>("Viewport");
-	viewport->SetFrameBuffer(std::make_shared<FrameBuffer>());
+	m_Renderer->LoadShaderFromFile("assets/shaders/example.frag");
+	viewport->SetFrameBuffer(m_Renderer->m_FrameBuffer);
+
 
 	while (m_Running)
 	{
@@ -74,6 +93,11 @@ void Application::RenderLoop()
 			if(panel->IsActive())
 				panel->DrawUI();
 		m_ImGuiFrame->End();
+
+		m_Renderer->m_ActiveShader->SetUniform("u_resolution", viewport->GetViewportSize());
+		m_Renderer->m_ActiveShader->SetUniform("u_mouse", viewport->GetMousePos());
+		m_Renderer->m_ActiveShader->SetUniform("u_time", ts.GetExecutionTimef());
+		m_Renderer->Draw();
 	}
 
 	m_Window->Close();
@@ -90,6 +114,11 @@ void Application::ChangeEditorTheme(int theme)
 	m_ImGuiFrame->ChangeTheme(theme);
 }
 
+void Application::SelectEntity(Entity& entity)
+{
+	m_SelectedEntity = entity;
+}
+
 void Application::Close()
 {
 	m_Running = false;
@@ -101,12 +130,21 @@ void Application::OnEvent(Event& e)
 	dispatcher.Emit<WindowResized>(BIND_FUNCTION(&Application::OnWindowResized, this));
 	dispatcher.Emit<WindowClosed>(BIND_FUNCTION(&Application::OnWindowClosed, this));
 	dispatcher.Emit<FilesDropped>(BIND_FUNCTION(&Application::OnFilesDropped, this));
+	dispatcher.Emit<KeyPressed>(BIND_FUNCTION(&Application::OnKeyboardHit, this)); // Deprecated
 
 	if(!e.IsHandled())
 	{
 		for (auto& [key, panel] : m_PanelsContainer)
+			// TODO : Check if the panel is active > 
+				// > TODO : If so, fix the conflict with listener panels by creating panel types 
+				// and perform a check on them rather checking than if the panel is active to invoke the function.
 			panel->OnEvent(e);
 	}
+}
+
+bool Application::OnKeyboardHit(KeyPressed& e)
+{
+	return false;
 }
 
 bool Application::OnWindowClosed(WindowClosed& e)

@@ -20,13 +20,15 @@
 // | OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // | SOFTWARE.
 
-#include "defpch.h"
+#include "pxpch.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
 
 #include "Application.h"
+#include "Renderer.h"
 #include "Panels.h"
+
 #include "Utils/Input.h"
 #include "Utils/FileDialogs.h"
 
@@ -59,18 +61,37 @@ void ViewportPanel::DrawUI()
 {
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0, 0 });
 	ImGui::Begin("Viewport", &m_Active, m_WindowFlags);
-
-	if (ImGui::IsWindowHovered())
+	if (auto shader = Renderer::GetRenderer()->GetShader())
 	{
-		auto window = Application::Get().GetWindow();
-		auto width = window->GetWidth();
-		auto height = window->GetHeight();
+		if (shader->IsLinked())
+		{
+			ImVec2 viewportSize = ImGui::GetContentRegionAvail();
+			if (m_ViewportSize != (*reinterpret_cast<glm::vec2*>(&viewportSize)))
+			{
+				m_FrameBuffer->Resize((unsigned int)viewportSize.x, (unsigned int)viewportSize.y);
+				m_ViewportSize = { viewportSize.x, viewportSize.y };
+			}
 
-		width -= m_ViewportSize.x;
-		height -= m_ViewportSize.y;
+			size_t textureID = static_cast<size_t>(m_FrameBuffer->GetColorAttachment());
+			ImGui::Image(reinterpret_cast<void*>(textureID), ImVec2{ m_ViewportSize.x, m_ViewportSize.y }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
 
-		ImVec2 mPos = ImGui::GetMousePos();
-		m_MousePos = { mPos.x - width, mPos.y - height };
+			if (ImGui::IsWindowHovered())
+			{
+				auto window = Application::Get().GetWindow();
+				auto width = window->GetWidth();
+				auto height = window->GetHeight();
+
+				width -= m_ViewportSize.x;
+				height -= m_ViewportSize.y;
+
+				ImVec2 mPos = ImGui::GetMousePos();
+				m_MousePos = { mPos.x - width, mPos.y - height };
+			}
+		}
+		else
+		{
+			TextCentered("There is no world currently loaded!");
+		}
 	}
 
 	ImGui::End();
@@ -185,7 +206,7 @@ void MenuBarPanel::OnEvent(Event& e)
 			}
 			break;
 		case Key::O:
-			if (control)
+			if (control) {}
 				
 			break;
 		case Key::S:
@@ -238,8 +259,132 @@ void AboutPanel::DrawUI()
 	if (ImGui::BeginPopupModal("About", &m_Active, m_WindowFlags))
 	{
 		ImGui::SetWindowSize({ 400, 200 });
-		ImGui::TextWrapped("Default Template Application by Ciridev.\nVersion 1.0.0");
+		ImGui::TextWrapped("PhysX Application by Ciridev.\nVersion 1.0.0");
 
 		ImGui::EndPopup();
 	}
+}
+
+EntityInspectorPanel::EntityInspectorPanel(const std::string& name) : Panel(name) 
+{
+	m_SelectedEntity = 0;
+	b_SetNameMode = false;
+}
+
+void EntityInspectorPanel::DrawUI()
+{
+	if(ImGui::Begin("Inspector", &m_Active, m_WindowFlags))
+	{
+		if (EntityManager::Get()->GetEntityMap().size() > 0)
+		{
+			Entity& entity = EntityManager::Get()->GetEntityAtLocation(m_SelectedEntity);
+
+			if (entity != Entity())
+			{
+				if (b_SetNameMode)
+				{
+					ImGui::Text("Name: ");
+					ImGui::SameLine();
+					ImGui::InputText(
+						"###NameEntry",
+						(char*)entity.GetName().data(),
+						entity.GetName().capacity() + 1,
+						ImGuiInputTextFlags_CallbackResize,
+						[](ImGuiInputTextCallbackData* data) -> int
+						{
+							if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
+							{
+								std::string* str = (std::string*)data->UserData;
+								IM_ASSERT(data->Buf == str->c_str());
+								str->resize((size_t)data->BufTextLen + 1ui64);
+								data->Buf = (char*)str->c_str();
+							}
+
+							return 0;
+						},
+						reinterpret_cast<void*>((std::string*)&entity.GetName())
+							);
+					ImGui::SameLine();
+					if (ImGui::Button("Save")) b_SetNameMode = false;
+				}
+				else
+				{
+					ImGui::Text("Name: %s", entity.GetName().c_str());
+					ImGui::SameLine();
+					if (ImGui::Button("Edit")) b_SetNameMode = true;
+				}
+
+				ImGui::Text("Id: %s", entity.GetId().c_str());
+			}
+		}
+	}
+
+	ImGui::End();
+}
+
+void EntityInspectorPanel::OnEvent(Event& e)
+{
+
+}
+
+WorldViewPanel::WorldViewPanel(const std::string& name) : Panel(name)
+{
+	m_EntityManagerRef = EntityManager::Get();
+}
+
+void WorldViewPanel::DrawUI()
+{
+	if (ImGui::Begin("World View", &m_Active, m_WindowFlags))
+	{
+		EntityMap entityMap = m_EntityManagerRef->GetEntityMap();
+
+		ImGui::Text("Entities {%d}", entityMap.size());
+		for (auto it = entityMap.begin(); it != entityMap.end(); it++)
+		{
+			auto entity = *it;
+
+			if (ImGui::Selectable(std::string(entity.GetName() + "###" + entity.GetId()).c_str()))
+			{
+				GetPanelInternal<EntityInspectorPanel>("Inspector")->m_SelectedEntity = it - entityMap.begin();
+				GetPanelInternal<EntityInspectorPanel>("Inspector")->b_SetNameMode = false;
+			}
+		}
+	}
+
+	ImGui::End();
+}
+
+EntityMangerListener::EntityMangerListener(const std::string& name) : ListenerPanel(name)
+{
+	m_EntityManager = EntityManager::Get();
+}
+
+void EntityMangerListener::OnEvent(Event& e)
+{
+	EventDispatcher dispatcher(e);
+
+	dispatcher.Emit<KeyPressed>(BIND_FUNCTION(&EntityMangerListener::OnKeyboardHit, this));
+}
+
+bool EntityMangerListener::OnKeyboardHit(KeyPressed& e)
+{
+	if (GetPanelInternal<EntityInspectorPanel>("Inspector")->b_SetNameMode) return true;
+
+	if (e.GetKeyCode() == (int)Key::Space)
+	{
+		std::cout << "Entity Map: (" << m_EntityManager->GetEntityMap().size() << ")\n";
+		for (auto entt : m_EntityManager->GetEntityMap())
+		{
+			std::cout << entt.GetId() << ": " << entt.GetName() << std::endl;
+		}
+		return true;
+	}
+	else if (e.GetKeyCode() == (int)Key::A)
+	{
+		std::string name = "New Entity " + std::to_string(m_EntityManager->GetEntityMap().size() + 1);
+		Entity entt = Entity::CreateEntity(name);
+		return true;
+	}
+
+	return false;
 }

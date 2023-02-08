@@ -49,7 +49,7 @@ public:
 	Window
 	(
 		WindowSettings settings,
-		std::string title = "Default Template Application"
+		std::string title = "PhysX"
 	) 
 	{
 		m_Data.m_Settings = settings;
